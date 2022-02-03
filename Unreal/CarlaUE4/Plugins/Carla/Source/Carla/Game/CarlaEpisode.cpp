@@ -338,27 +338,49 @@ void UCarlaEpisode::InitializeAtBeginPlay()
       break;
     }
   }
-
   for (TActorIterator<AStaticMeshActor> It(World); It; ++It)
   {
     auto Actor = *It;
     check(Actor != nullptr);
     auto MeshComponent = Actor->GetStaticMeshComponent();
     check(MeshComponent != nullptr);
-    if (MeshComponent->Mobility == EComponentMobility::Movable)
-    {
-      FActorDescription Description;
-      Description.Id = TEXT("static.prop.mesh");
-      Description.UId = StaticMeshUId;
-      Description.Class = Actor->GetClass();
-      Description.Variations.Add("mesh_path",
-          FActorAttribute{"mesh_path", EActorAttributeType::String,
-          MeshComponent->GetStaticMesh()->GetPathName()});
-      Description.Variations.Add("mass",
-          FActorAttribute{"mass", EActorAttributeType::Float,
-          FString::SanitizeFloat(MeshComponent->GetMass())});
-      ActorDispatcher->RegisterActor(*Actor, Description);
-    }
+    
+    FActorDescription Description;
+    Description.Id = TEXT("static.prop.mesh");
+    Description.UId = StaticMeshUId;
+    Description.Class = Actor->GetClass();
+    Description.Variations.Add("mesh_path",
+        FActorAttribute{"mesh_path", EActorAttributeType::String,
+        MeshComponent->GetStaticMesh()->GetPathName()});
+
+    UE_LOG(LogCarla, Error, TEXT("OBJECTG '%s' "), *MeshComponent->GetStaticMesh()->GetPathName());
+    UE_LOG(LogCarla, Error, TEXT("OBJECT ActorToWorld transfrom '%s' "), *(Actor->ActorToWorld().ToMatrixWithScale().ToString()));
+    UE_LOG(LogCarla, Error, TEXT("OBJECT GetTransform transfrom scaled '%s' "), *(Actor->GetTransform().ToMatrixWithScale().ToString()));
+    UE_LOG(LogCarla, Error, TEXT("OBJECT GetActorTransform transfrom scaled '%s' "), *(Actor->GetActorTransform().ToMatrixWithScale().ToString()));
+    UE_LOG(LogCarla, Error, TEXT("OBJECT GetActorScale3D transfrom scaled '%s' "), *(Actor->GetActorScale3D().ToString()));
+    UE_LOG(LogCarla, Error, TEXT("OBJECT GetActorScale transfrom scaled '%s' "), *(Actor->GetActorScale().ToString()));
+
+
+
+
+    UE_LOG(LogCarla, Error, TEXT("OBJECT actor transfrom scaled '%s' "), *(Actor->GetTransform().ToInverseMatrixWithScale().ToString()));
+    // UE_LOG(LogCarla, Error, TEXT("OBJECT actor transfrom '%s' "), *(Actor->GetTransform().ToHumanReadableString()));
+    // UE_LOG(LogCarla, Error, TEXT("OBJECT actor transfrom '%s' "), *(Actor->GetTransform().ToString()));
+
+
+    UE_LOG(LogCarla, Error, TEXT("OBJECT actor transfrom '%s' "), *(Actor->GetTransform().GetRotation().ToString()));
+    UE_LOG(LogCarla, Error, TEXT("OBJECT actor transfrom '%s' "), *(Actor->GetTransform().GetTranslation().ToString()));
+
+
+    Description.Variations.Add("mass",
+        FActorAttribute{"mass", EActorAttributeType::Float,
+        FString::SanitizeFloat(MeshComponent->GetMass())});
+    ActorDispatcher->RegisterActor(*Actor, Description);
+
+    const FCarlaActor* view = FindCarlaActor(Actor);
+      if(view)
+        UE_LOG(LogCarla, Error, TEXT("OBJECTG_ID '%d' "),  view->GetActorId());
+  // }
   }
 }
 

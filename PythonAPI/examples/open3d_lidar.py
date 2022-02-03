@@ -32,8 +32,9 @@ import carla
 VIRIDIS = np.array(cm.get_cmap('plasma').colors)
 VID_RANGE = np.linspace(0.0, 1.0, VIRIDIS.shape[0])
 LABEL_COLORS = np.array([
+
     (255, 255, 255), # None
-    (70, 70, 70),    # Building
+    (255, 0, 0),    # Building
     (100, 40, 40),   # Fences
     (55, 90, 80),    # Other
     (220, 20, 60),   # Pedestrian
@@ -54,7 +55,6 @@ LABEL_COLORS = np.array([
     (110, 190, 160), # Static
     (170, 120, 50),  # Dynamic
     (45, 60, 150),   # Water
-    (145, 170, 100), # Terrain
 ]) / 255.0 # normalize each channel [0-1] since is what Open3D uses
 
 
@@ -98,15 +98,38 @@ def semantic_lidar_callback(point_cloud, point_list):
 
     # We're negating the y to correclty visualize a world that matches
     # what we see in Unreal since Open3D uses a right-handed coordinate system
-    points = np.array([data['x'], -data['y'], data['z']]).T
+    points = np.array([data['x'], data['y'], data['z']]).T
+    local_lidar_points = points.copy().T
+    local_lidar_points = np.r_[
+                local_lidar_points, [np.ones(local_lidar_points.shape[1])]]
+
+    lidar_2_world = point_cloud.transform.get_matrix()
+    world_points = np.dot(local_lidar_points.T, np.array(lidar_2_world).T)
 
     # # An example of adding some noise to our data if needed:
     # points += np.random.uniform(-0.05, 0.05, size=points.shape)
 
     # Colorize the pointcloud based on the CityScapes color palette
     labels = np.array(data['ObjTag'])
+    tags = np.array(data['ObjIdx'])
+    # print(set(np.asarray(tags)))
+    tag_types = list(set(np.asarray(tags)))
+    good_tag = tag_types[1]
+    # int_color = LABEL_COLORS[tags]
     int_color = LABEL_COLORS[labels]
+    for i, col in enumerate( int_color):
+        if (tags[i] == good_tag):
+            int_color[i] = (1, 0, 0)
+        else:
+            int_color[i] = (0.1, 0.1, 0.1)
+    # with open("orig.csv", "a") as f:
+    #     arr = [[[a[0], a[1], a[2]],b] for a, b in zip(points, labels)]
+    #     f.write(str(lidar_2_world) +","+ str(point_cloud.transform) + "," +str(arr)+"\n")
 
+    with open("word_cords_final_exp.csv", "a") as f:
+        arr = [[[a[0], a[1], a[2]],b, c] for a, b, c in zip(world_points, labels, tags)]
+        f.write(str(point_cloud.transform) + "," +str(arr)+"\n")
+    
     # # In case you want to make the color intensity depending
     # # of the incident ray angle, you can use:
     # int_color *= np.array(data['CosAngle'])[:, None]
@@ -160,7 +183,11 @@ def main(arg):
     """Main function of the script"""
     client = carla.Client(arg.host, arg.port)
     client.set_timeout(2.0)
+    # world = client.load_world('Town01')
     world = client.get_world()
+    # print(client.get_available_maps())
+    
+    # world = client.load_world('Town01')
 
     try:
         original_settings = world.get_settings()
