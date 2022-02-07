@@ -1,31 +1,20 @@
-import glob
-import os
-import readline
-import signal
 import sys
 import argparse
-import time
-from datetime import datetime
-import random
-from cv2 import mean
 import numpy as np
 import matplotlib.pyplot as plt
 import open3d as o3d
-import ast
-from copy import deepcopy
 from sklearn.cluster import DBSCAN
-from collections import UserString, defaultdict
+from collections import defaultdict
+import argparse
 
-
-if __name__ == "__main__":
-    mesh = o3d.io.read_triangle_mesh(sys.argv[1])
-
+def main(args):
+    mesh = o3d.io.read_triangle_mesh(args.mesh)
     
-    small_triangle =   5000
+    small_triangle = args.min_area
 
 
 
-    #filter small triangles and compute planes
+    #filter small triangles
     triangles = np.asarray(mesh.triangles).copy()
     vertices = np.asarray(mesh.vertices).copy()
     areas = np.ones_like(np.take(triangles, [0], axis=1)) 
@@ -54,7 +43,6 @@ if __name__ == "__main__":
     #calculate planes
     mesh.compute_triangle_normals(normalized=True)
     normals = np.asarray(mesh.triangle_normals)
-    # normals = normals * np.sign(normals[0])
     
     triangles = np.asarray(mesh.triangles).copy()
     vertices = np.asarray(mesh.vertices).copy()
@@ -72,9 +60,7 @@ if __name__ == "__main__":
     for label_id, label in enumerate(clustering.labels_):
         label_to_meshes[label].append(label_id)
     
-    # for label_id, label in enumerate(triangles):
-    #     label_to_meshes[label_id].append(label_id)
-    
+    #construct meshes out of planes
     meshes = []
     triangles = np.asarray(mesh.triangles).copy()
     vertices = np.asarray(mesh.vertices).copy()
@@ -94,11 +80,9 @@ if __name__ == "__main__":
         new_mesh.vertices = o3d.utility.Vector3dVector(vertices_3)
         if (new_mesh.get_surface_area() ==0 ):
             continue
-        # print(new_mesh.get_surface_area())
         meshes.append(new_mesh)
     
-        # pcds.append(new_mesh.sample_points_poisson_disk(500 ))
-        
+    #sample and color mesh-planes
     pcds = []
     for mesh in meshes:
         pcd = mesh.sample_points_poisson_disk(int(np.sqrt(new_mesh.get_surface_area())/2))
@@ -118,4 +102,29 @@ if __name__ == "__main__":
     for color_id, pcd in enumerate(pcds):
         pcds[color_id].paint_uniform_color(colors(color_id)[:3]) 
 
-    o3d.visualization.draw_geometries(pcds)
+    o3d.io.write_point_cloud(args.store, pcd)
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(
+        description=__doc__)
+
+    argparser.add_argument(
+        '--min_area',
+        default=5000,
+        help='the minimal area of triangles that will not be filtered')
+
+    argparser.add_argument(
+        '--mesh',
+        help='path to mesh')
+
+    argparser.add_argument(
+        '--store',
+        help='path to where to save pcd')
+
+    args = argparser.parse_args()
+    try:
+        main(args)
+    except KeyboardInterrupt:
+        print(' - Exited by user.')
+
