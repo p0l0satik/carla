@@ -20,9 +20,11 @@ def main(args):
         np_pts = np.empty((0,3))
         filtered_ids = []
         filtered = []
-        for i in range(int(sys.argv[2])):
+        for i in range(args.lines):
             line = f.readline()
-            sep = line.split(",|,") 
+            if not line:
+                break
+            sep = line.split(",|,")
             tr = sep[0] #transformation to world coordinates
             points_packed = ast.literal_eval(sep[1])
             
@@ -36,19 +38,19 @@ def main(args):
                     filtered.append(points[i])
                     filtered_ids.append(ids[i])
         id_types = set(filtered_ids)
-        print(np_pts.shape, len(filtered_ids))
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(np.array(filtered))
-        o3d.io.write_point_cloud("aligned_new.pcd", pcd)
+        o3d.io.write_point_cloud(args.store, pcd)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         description=__doc__)
 
     argparser.add_argument(
-        '--min_area',
-        default=5000,
-        help='the minimal area of triangles that will not be filtered')
+        '--lines',
+        type=int,
+        default=10000000,
+        help='the number of pointclouds to be united')
 
     argparser.add_argument(
         '--path',
@@ -56,7 +58,7 @@ if __name__ == "__main__":
 
     argparser.add_argument(
         '--store',
-        help='path to where to save pcd')
+        help='path to where to save new pcd')
 
     args = argparser.parse_args()
     try:

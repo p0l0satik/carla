@@ -65,7 +65,6 @@ def main(args):
     triangles = np.asarray(mesh.triangles).copy()
     vertices = np.asarray(mesh.vertices).copy()
     for mesh_tr in label_to_meshes.values():
-        print(len(mesh_tr))
         triangles_3 = []
         vertices_3 = []
         for i, triangle_id in enumerate(mesh_tr):
@@ -89,7 +88,6 @@ def main(args):
 
         points = np.asarray(pcd.points)
         clustering = DBSCAN(eps=100, min_samples=200, n_jobs=20).fit(points)
-        print(set(clustering.labels_))
         for label in set(clustering.labels_):
             new_pcd = o3d.geometry.PointCloud()
             new_points = []
@@ -97,11 +95,13 @@ def main(args):
                 if lbl == label:
                     new_points.append(points[i])
             new_pcd.points = o3d.utility.Vector3dVector(np.array(new_points))
+
             pcds.append(new_pcd)
     colors = plt.cm.get_cmap('hsv', len(pcds))
     for color_id, pcd in enumerate(pcds):
         pcds[color_id].paint_uniform_color(colors(color_id)[:3]) 
 
+    o3d.visualization.draw_geometries(pcds)
     o3d.io.write_point_cloud(args.store, pcd)
 
 
@@ -111,7 +111,8 @@ if __name__ == "__main__":
 
     argparser.add_argument(
         '--min_area',
-        default=5000,
+        type=int,
+        default=0,
         help='the minimal area of triangles that will not be filtered')
 
     argparser.add_argument(
