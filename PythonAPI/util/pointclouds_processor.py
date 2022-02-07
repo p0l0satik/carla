@@ -22,7 +22,7 @@ def main(args):
         filtered = []
         for i in range(int(sys.argv[2])):
             line = f.readline()
-            sep = line.split(")),") 
+            sep = line.split(",|,") 
             tr = sep[0] #transformation to world coordinates
             points_packed = ast.literal_eval(sep[1])
             
